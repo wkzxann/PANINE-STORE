@@ -1,0 +1,164 @@
+-- borra la bd si existe
+DROP DATABASE IF EXISTS PanineStore;
+-- creamos la bd
+CREATE DATABASE PanineStore;
+-- activamos la bd
+USE PanineStore;
+
+create table tb_tipos(
+id_tipo  int not null primary key,
+des_tipo varchar(25)
+);
+
+CREATE TABLE tb_clientes(
+cod_cliente  char(5) not null,
+nombre varchar(40) not null,
+apellido varchar(40) not null,
+dni char(8) not null,
+telefono char(9),
+direccion  varchar(50) not null,
+fechanac    date,
+primary key (cod_cliente)
+);
+
+create table tb_personal(
+cod_personal  int auto_increment,
+nombre varchar(40) not null,
+apellido varchar(40) not null,
+tipo int,
+dni char(8) not null,
+telefono char(9),
+usuario  char(5) not null,
+clave    char(5),
+primary key (cod_personal),
+foreign key (tipo) references tb_tipos(id_tipo)
+);
+
+create table tb_categorias(
+idtipo		int not null primary key,
+descripcion varchar(45)
+);
+
+create table tb_productos(
+idprod      char(5) not null,
+nombre_producto varchar(45) not null,
+categoria		int not null,
+precio		decimal(8,2) not null,
+stock		int not null,
+primary key (idprod), 
+foreign key (categoria) references tb_categorias(idtipo)
+);
+
+create table tb_boleta(
+cod_bol    char(5) not null,
+fch_bol    date,
+cod_cliente  char(5) not null,
+cod_vendedor int not null,
+total_bol decimal(8,2),
+primary key (cod_bol),
+foreign key (cod_cliente) references tb_clientes(cod_cliente),
+foreign key (cod_vendedor) references tb_personal(cod_personal)
+);
+
+create table tb_det_boleta(
+cod_det_bol     char(5) not null,
+idprod      char(5) not null,
+cantidad    int not null,
+preciovta   decimal(8,2) not null,
+importe decimal(8,2) not null,
+primary key (cod_det_bol, idprod),
+foreign key (cod_det_bol) references tb_boleta(cod_bol),
+foreign key (idprod) references tb_productos(idprod)
+);
+
+-- insert de los tipos 
+insert into tb_tipos values (1, 'Administrador');
+insert into tb_tipos values (2, 'Cajero');
+
+-- LISTADO DE LOS TIPOS
+select * from tb_tipos;
+
+-- insert de los clientes
+insert into tb_clientes values ('ANJES','Anderson Jesús', 'Aquino','98765434', '916367713', 'Mz L LT 3', '2003-08-12');
+insert into tb_clientes values ('AGABI','Agustina Abigail', 'Argañaraz','65748374', '934214816', 'Mz C LT 11', '2004-09-10');
+insert into tb_clientes values ('JOURC','José Urías', 'Cerda','75138216', '991507749', 'Mz A LT 15', '1996-08-08');
+insert into tb_clientes values ('VAJOL','Valentino Joaquin', 'Laureano','38512595', '961254855', 'Mz B LT 2', '1990-04-12');
+insert into tb_clientes values ('ESANR','Estrella Angie', 'Rojas','85632452', '980230606', 'Mz U LT 9', '2005-03-10');
+
+-- LISTADO DE CLIENTES
+select * from tb_clientes;
+
+-- insert del personal
+insert into tb_personal values (1,'Daniel Josue', 'Preciado','1','98365934', '900254563', 'ADMIN','ADMIN');
+insert into tb_personal values (2,'Gerson Edward', 'Mejia','2','65443824', '936462843', 'CAJA','CAJA');
+
+-- LISTADO DEL PERSONAL
+select * from tb_personal;
+
+-- inset de las categorias del producto
+insert into tb_categorias values (1, 'Limpieza');
+insert into tb_categorias values (2, 'Cereales');
+insert into tb_categorias values (3, 'Galletas');
+insert into tb_categorias values (4, 'Bebidas');
+insert into tb_categorias values (5, 'Gomas');
+insert into tb_categorias values (6, 'Shampoo');
+
+-- Listado de las categorias
+select * from tb_categorias;
+
+-- insert de los productos
+insert into tb_productos values ('P0001','Soda Club', '3', 1.80 , 10);
+insert into tb_productos values ('P0002','Coca-Cola', '4', 2.80 , 30);
+insert into tb_productos values ('P0003','Rellenitas', '3', 0.80 , 20);
+insert into tb_productos values ('P0004','Ariel', '1', 3.80 , 15);
+insert into tb_productos values ('P0005','Cielo', '4', 1.20 , 20);
+insert into tb_productos values ('P0006','Trident', '5', 1.50 , 10);
+insert into tb_productos values ('P0007','Kiwicha Popeada', '2', 7.50 , 15);
+insert into tb_productos values ('P0008','Margarita', '3', 0.70 , 20);
+insert into tb_productos values ('P0009','Tampico', '4', 1.80 , 10);
+insert into tb_productos values ('P0010','Sedal', '6', 0.20 , 10);
+insert into tb_productos values ('P0011','Sabital', '6', 0.20 , 40);
+insert into tb_productos values ('P0012','Suavitel', '1', 0.20 , 40);
+insert into tb_productos values ('P0013','Downy', '5', 0.20 , 40);
+
+
+-- Listado de productos
+select * from tb_productos;
+
+-- Creacion del procedure para validar acceso de los personales
+create procedure usp_validarAccesoPersonal(xuser char(5), xclave char(5))
+	select * from tb_personal where usuario = xuser and clave = xclave;
+    
+call usp_validarAccesoPersonal('ADMIN','ADMIN');
+
+-- Procedure para reportes de clientes que compraron
+create procedure usp_ReporteXCliente(codcliente char(5))
+	select b.cod_bol as 'Codigo de la Boleta', b.fch_bol as 'Fecha de Venta', concat(c.nombre, ' ' , c.apellido) as 'Nombre Completo',
+    concat(p.nombre, ' ' , p.apellido) as 'Nombre Vendedor',
+    b.total_bol as 'Importe' from tb_boleta b inner join tb_clientes c on b.cod_cliente = c.cod_cliente 
+    inner join tb_personal p on b.cod_vendedor = p.cod_personal
+		where b.cod_cliente = codcliente;
+    
+call usp_ReporteXCliente('AGABI');
+
+-- Procedure para reportas las ventas por fecha
+create procedure usp_ReporteXFecha(fch_bol date)
+	select b.cod_bol as 'Codigo de la Boleta', b.fch_bol as 'Fecha de Venta', concat(c.nombre, ' ' , c.apellido) as 'Nombre Completo', 
+    concat(p.nombre, ' ' , p.apellido) as 'Nombre Vendedor',
+    b.total_bol as 'Importe' from tb_boleta b inner join tb_clientes c on b.cod_cliente = c.cod_cliente
+    inner join tb_personal p on b.cod_vendedor = p.cod_personal
+		where b.fch_bol = fch_bol;
+        
+-- 
+call usp_ReporteXFecha('2022-06-28');
+
+-- 
+DELIMITER $$
+create procedure usp_consulProNom(nombre varchar(45))
+begin
+	select idprod as 'Codigo', nombre_producto as 'Nombre', categoria as 'Categoria', precio as 'Precio', stock as 'Stock' from tb_productos p
+    where nombre_producto like concat('%', nombre, '%');
+end $$
+DELIMITER ;
+
+call usp_consulProNom('Co');
